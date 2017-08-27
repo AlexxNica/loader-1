@@ -1,0 +1,56 @@
+{
+  "name": "assemblyscript-loader",
+  "description": "AssemblyScript's loader component as a stand-alone module.",
+  "version": "0.3.0",
+  "author": "Daniel Wirtz <dcode+assemblyscript@dcode.io>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AssemblyScript/loader.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AssemblyScript/loader/issues"
+  },
+  "homepage": "http://assemblyscript.org",
+  "keywords": [
+    "webassembly",
+    "wasm",
+    "typescript",
+    "loader"
+  ],
+  "main": "index.js",
+  "typings": "index.d.ts",
+  "files": [
+    "dist/assemblyscript-loader.d.ts",
+    "dist/assemblyscript-loader.js",
+    "dist/assemblyscript-loader.js.map",
+    "index.js",
+    "index.d.ts",
+    "package.json",
+    "package-lock.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build:compile": "tsc -P src",
+    "build:bundle": "node scripts/build-bundle",
+    "build": "npm run build:compile && npm run build:bundle"
+  },
+  "dependencies": {
+    "@types/long": "^3.0.32",
+    "@types/webassembly-js-api": "0.0.1",
+    "long": "^3.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.24",
+    "browserify": "^14.4.0",
+    "dts-bundle": "^0.7.3",
+    "gulp-header": "^1.8.9",
+    "gulp-sourcemaps": "^2.6.1",
+    "gulp-uglify": "^3.0.0",
+    "rimraf": "^2.6.1",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-fs": "^2.4.4",
+    "vinyl-source-stream": "^1.1.0",
+    "typescript": "^2.5.1"
+  }
+}
