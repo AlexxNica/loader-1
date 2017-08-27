@@ -1,7 +1,7 @@
 AssemblyScript Loader
 =====================
 
-[AssemblyScript](https://assemblyscript.org)'s loader component to run and work with compiled WebAssembly modules, as a stand-alone module.
+[AssemblyScript](http://assemblyscript.org)'s loader component to run and work with compiled WebAssembly modules, as a stand-alone module.
 
 [![npm](https://img.shields.io/npm/v/assemblyscript-loader.svg)](https://www.npmjs.com/package/assemblyscript-loader)
 
