@@ -1,0 +1,10 @@
+{
+  "extends": "../node_modules/assemblyscript/tsconfig.assembly.json",
+  "include": [
+    "./**/*.ts",
+    "./**/*.as"
+  ],
+  "assembly": {
+    "outFile": "./module.wasm"
+  }
+}

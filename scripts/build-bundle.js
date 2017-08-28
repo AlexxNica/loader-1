@@ -50,7 +50,7 @@ browserify({
   var dtsOut = __dirname + "/../dist/assemblyscript-loader.d.ts";
   dts.bundle({
     name: "assemblyscript-loader",
-    main: __dirname + "/../index.d.ts",
+    main: __dirname + "/../out/index.d.ts",
     exclude: function(file, external) {
       const excluded = false; // no excludes
       if (!seen[file])

@@ -362,25 +362,24 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
 
 /** Options to set up the environment created by {@link load}. */
 export interface LoadOptions {
-  /** Memory instance to import, if applicable. */
-  memory?: WebAssembly.Memory;
   /** Imported elements. Usually functions. */
   imports?: { [key: string]: any };
   /** Object to populate with exports. Creates a new object if omitted. */
   exports?: { [key: string]: any };
+  /** Memory instance to import, if applicable. */
+  memory?: WebAssembly.Memory;
 }
 
-export function load(file: string | Uint8Array | ArrayBuffer, options?: LoadOptions) {
+export function load(file: string | Uint8Array | ArrayBuffer, options?: LoadOptions): Promise<Module> {
   if (!options) options = {};
 
-  const imports = <Imports>(options.imports || {});
-  const exports = <Exports>(options.exports || {});
-  let   memory  = <Memory>(options.memory || null);
-
-  const module: Module = {
-    imports,
-    exports,
-    memory: <Memory>memory,
+  const imp = <Imports>(options.imports || {});
+  const exp = <Exports>(options.exports || {});
+  let   mem = <Memory>(options.memory || null);
+  const mod: Module = {
+    imports: imp,
+    exports: exp,
+    memory: <Memory>mem,
     log: (type, message) => {
       let stype: string;
       switch (type) {
@@ -394,27 +393,27 @@ export function load(file: string | Uint8Array | ArrayBuffer, options?: LoadOpti
   };
 
   // initialize imports
-  if (!imports.lib) imports.lib = {};
-  if (!imports.lib.log) imports.lib.log = (type, messagePtr) => module.log(type, memory.string.get(messagePtr));
-  if (!imports.lib.resize)
-    imports.lib.resize = () => {
-      initializeMemory(memory, exports.malloc || imports.lib.malloc, exports.memset || imports.lib.memset);
+  if (!imp.lib) imp.lib = {};
+  if (!imp.lib.log) imp.lib.log = (type, messagePtr) => mod.log(type, mem.string.get(messagePtr));
+  if (!imp.lib.resize)
+    imp.lib.resize = () => {
+      initializeMemory(mem, exp.malloc || imp.lib.malloc, exp.memset || imp.lib.memset);
     };
 
   // initialize exports
   let resolveReady;
   let rejectReady;
-  if (!exports.ready)
-    exports.ready = new Promise((resolve, reject) => {
+  if (!exp.ready)
+    exp.ready = new Promise<Module>((resolve, reject) => {
       resolveReady = resolve;
       rejectReady = reject;
     });
 
   return (typeof file === "string"
-    ? xfetch(file)
+    ? xfetch(file) // transpiles to exports.xfetch, no matter if there's a local 'exports'
       .then(result => result.arrayBuffer())
-      .then(buffer => WebAssembly.instantiate(buffer, imports))
-    : WebAssembly.instantiate(file, imports)
+      .then(buffer => WebAssembly.instantiate(buffer, imp))
+    : WebAssembly.instantiate(file, imp)
   )
   .catch(reason => {
     rejectReady(reason);
@@ -422,12 +421,12 @@ export function load(file: string | Uint8Array | ArrayBuffer, options?: LoadOpti
   })
   .then(result => {
     for (let keys = Object.keys(result.instance.exports), i = 0; i < keys.length; ++i)
-      module.exports[keys[i]] = result.instance.exports[keys[i]];
-    if (module.exports.memory)
-      memory = module.memory = module.exports.memory;
-    imports.lib.resize();
-    resolveReady(module);
-    return module;
+      mod.exports[keys[i]] = result.instance.exports[keys[i]];
+    if (mod.exports.memory)
+      mem = mod.memory = mod.exports.memory;
+    imp.lib.resize();
+    resolveReady(mod);
+    return Promise.resolve(mod);
   });
 }
 
@@ -435,7 +434,7 @@ export { load as default };
 
 let fs;
 
-export const xfetch: typeof fetch = typeof fetch === "function" ? fetch : function fetch_node(file): Promise<Response> {
+export let xfetch: typeof fetch = typeof fetch === "function" ? fetch : function fetch_node(file): Promise<Response> {
   return new Promise((resolve, reject) => {
     (fs || (fs = eval("equire".replace(/^/, "r"))("fs")))
     .readFile(file, (err, data) => {

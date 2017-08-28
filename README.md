@@ -3,7 +3,7 @@ AssemblyScript Loader
 
 [AssemblyScript](http://assemblyscript.org)'s loader component to run and work with compiled WebAssembly modules, as a stand-alone module.
 
-[![npm](https://img.shields.io/npm/v/assemblyscript-loader.svg)](https://www.npmjs.com/package/assemblyscript-loader)
+[![npm](https://img.shields.io/npm/v/assemblyscript-loader.svg)](https://www.npmjs.com/package/assemblyscript-loader) [![Build Status](https://travis-ci.org/AssemblyScript/loader.svg?branch=master)](https://travis-ci.org/AssemblyScript/loader)
 
 Usage
 -----
@@ -175,7 +175,7 @@ $> cd loader
 $> npm install
 ```
 
-Afterwards, to build the distribution files to [dist/](./dist), run:
+Afterwards, to build the distribution files to *dist/*, run:
 
 ```
 $> npm run build
