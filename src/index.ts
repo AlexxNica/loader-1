@@ -117,7 +117,7 @@ export interface Module {
   log: (type: LogType, message: string) => void;
 }
 
-let LongModule;
+let LongModule: any;
 try { LongModule = require("long"); if (typeof LongModule !== "function") LongModule = undefined; } catch (e) {}
 
 /** Initializes a memory instance and adds additional utilities. */
@@ -181,13 +181,13 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
   };
 
   memory.uint = memory.u32 = {
-    get: function get_uint(ptr) {
+    get: function get_uint(ptr: number): number {
       return (buffer[ptr    ]
             | buffer[ptr + 1] << 8
             | buffer[ptr + 2] << 16
             | buffer[ptr + 3] << 24) >>> 0;
     },
-    set: function set_uint(ptr, value) {
+    set: function set_uint(ptr: number, value: number): void {
       buffer[ptr    ] = value        & 255;
       buffer[ptr + 1] = value >>> 8  & 255;
       buffer[ptr + 2] = value >>> 16 & 255;
@@ -195,7 +195,7 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
     }
   };
 
-  function get_long_s(ptr, unsigned) {
+  function get_long_s(ptr: number, unsigned?: boolean): Long {
     const lo = buffer[ptr    ]
              | buffer[ptr + 1] << 8
              | buffer[ptr + 2] << 16
@@ -209,7 +209,7 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
       : { low: lo, high: hi, unsigned: !!unsigned };
   }
 
-  function set_long_s(ptr, value) {
+  function set_long_s(ptr: number, value: Long): void {
     buffer[ptr    ] = value.low         & 255;
     buffer[ptr + 1] = value.low  >>> 8  & 255;
     buffer[ptr + 2] = value.low  >>> 16 & 255;
@@ -221,12 +221,12 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
   }
 
   memory.long = memory.s64 = {
-    get: function get_long(ptr) { return get_long_s(ptr, false); },
+    get: function get_long(ptr: number) { return get_long_s(ptr, false); },
     set: set_long_s
   };
 
   memory.ulong = memory.u64 = {
-    get: function get_ulong(ptr) { return get_long_s(ptr, true); },
+    get: function get_ulong(ptr: number) { return get_long_s(ptr, true); },
     set: set_long_s
   };
 
@@ -236,7 +236,7 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
   const fle = f8b[7] === 128;
 
   memory.float = memory.f32 = {
-    get: function get_float(ptr) {
+    get: function get_float(ptr: number): number {
       if (fle) {
         f8b[0] = buffer[ptr    ];
         f8b[1] = buffer[ptr + 1];
@@ -250,7 +250,7 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
       }
       return f32[0];
     },
-    set: function set_float(ptr, value) {
+    set: function set_float(ptr: number, value: number): void {
       f32[0] = value;
       if (fle) {
         buffer[ptr    ] = f8b[0];
@@ -267,7 +267,7 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
   };
 
   memory.double = memory.f64 = {
-    get: function get_double(ptr) {
+    get: function get_double(ptr: number): number {
       if (fle) {
         f8b[0] = buffer[ptr    ];
         f8b[1] = buffer[ptr + 1];
@@ -289,7 +289,7 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
       }
       return f64[0];
     },
-    set: function set_double(ptr, value) {
+    set: function set_double(ptr: number, value: number): void {
       f64[0] = value;
       if (fle) {
         buffer[ptr    ] = f8b[0];
@@ -381,28 +381,28 @@ export function load(file: string | Uint8Array | ArrayBuffer, options?: LoadOpti
     exports: exp,
     memory: <Memory>mem,
     log: (type, message) => {
-      let stype: string;
+      let fn: (message: string) => void;
       switch (type) {
-        case 1: stype = "info"; break;
-        case 2: stype = "warn"; break;
-        case 3: stype = "error"; break;
-        default: stype = "log";
+        case 1: fn = console.info; break;
+        case 2: fn = console.warn; break;
+        case 3: fn = console.error; break;
+        default: fn = console.log;
       }
-      console[stype](message);
+      fn(message);
     }
   };
 
   // initialize imports
   if (!imp.lib) imp.lib = {};
-  if (!imp.lib.log) imp.lib.log = (type, messagePtr) => mod.log(type, mem.string.get(messagePtr));
+  if (!imp.lib.log) imp.lib.log = (type: LogType, messagePtr: number) => mod.log(type, mem.string.get(messagePtr));
   if (!imp.lib.resize)
     imp.lib.resize = () => {
       initializeMemory(mem, exp.malloc || imp.lib.malloc, exp.memset || imp.lib.memset);
     };
 
   // initialize exports
-  let resolveReady;
-  let rejectReady;
+  let resolveReady: (value: Module) => void;
+  let rejectReady: (reason: Error) => void;
   if (!exp.ready)
     exp.ready = new Promise<Module>((resolve, reject) => {
       resolveReady = resolve;
@@ -432,15 +432,15 @@ export function load(file: string | Uint8Array | ArrayBuffer, options?: LoadOpti
 
 export { load as default };
 
-let fs;
+let fs: any;
 
 export let xfetch: typeof fetch = typeof fetch === "function" ? fetch : function fetch_node(file): Promise<Response> {
   return new Promise((resolve, reject) => {
     (fs || (fs = eval("equire".replace(/^/, "r"))("fs")))
-    .readFile(file, (err, data) => {
+    .readFile(file, (err: Error, data: Buffer) => {
       return err
         ? reject(err)
-        : resolve(<Response>{ arrayBuffer: () => data });
+        : resolve(<Response><any>{ arrayBuffer: () => new Uint8Array(data).buffer });
     })
   });
 };
