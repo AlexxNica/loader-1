@@ -6,9 +6,6 @@ export enum LogType {
   ERROR = 3
 }
 
-/** Size of an array header in bytes. */
-export const arrayHeaderSize = 8; // capacity and length
-
 /** Number memory accessor. */
 export interface NumberAccessor {
   /** Gets a value of the underlying type from memory at the specified pointer. */
@@ -35,10 +32,10 @@ export interface ArrayAccessor {
 
 /** String memory accessor. */
 export interface StringAccessor {
-  /** Gets a string from memory at the specified pointer. */
-  get(ptr: number): string;
-  /** Creates a string in memory and returns its pointer. */
-  create(value: string): number;
+  /** Gets a string from memory at the specified pointer and returns its capacity, length, element base pointer and value. */
+  get(ptr: number): { capacity: number, length: number, base: number, value: string };
+  /** Creates a string in memory and returns its pointer and element base pointer. */
+  create(value: string): { ptr: number, base: number };
 }
 
 /** A reference to the underlying memory instance populated with additional utility. */
@@ -124,6 +121,7 @@ try { LongModule = require("long"); if (typeof LongModule !== "function") LongMo
 export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n: number) => number, memset: (d: number, i: number, n: number) => number): Memory {
   const memory = <Memory>memoryInstance;
   const buffer = new Uint8Array(memoryInstance.buffer);
+  const arrayHeaderSize = 4 + 4 + 4; // wasm32: capacity:i32 + length:32 + data:i32
 
   memory.byte = memory.u8 = {
     get: function get_byte(ptr) {
@@ -317,21 +315,24 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
     get: function get_array(ptr) {
       const capacity = memory.int.get(ptr);
       const length = memory.int.get(ptr + 4);
+      const base = memory.int.get(ptr + 8);
       return {
-        capacity: capacity,
-        length: length,
-        base: ptr + arrayHeaderSize
+        capacity,
+        length,
+        base
       };
     },
     create: function create_array(length, elementByteSize) {
       const size = length * elementByteSize;
-      const ptr = malloc(arrayHeaderSize + size);
+      const ptr = malloc(arrayHeaderSize);
+      const base = malloc(size);
       memory.int.set(ptr, length); // capacity
       memory.int.set(ptr + 4, length); // length
-      memset(ptr + arrayHeaderSize, 0, size - arrayHeaderSize);
+      memory.int.set(ptr + 8, base); // base
+      memset(base, 0, size);
       return {
-        ptr: ptr,
-        base: ptr + arrayHeaderSize
+        ptr,
+        base
       };
     }
   };
@@ -340,20 +341,31 @@ export function initializeMemory(memoryInstance: WebAssembly.Memory, malloc: (n:
     get: function get_string(ptr) {
       const capacity = memory.int.get(ptr);
       const length = memory.int.get(ptr + 4);
+      const base = memory.int.get(ptr + 8);
       const chars = new Array(length);
-      for (let i = 0, base = arrayHeaderSize + ptr; i < length; ++i)
+      for (let i = 0; i < length; ++i)
         chars[i] = memory.ushort.get(base + (i << 1));
-      return String.fromCharCode.apply(String, chars); // TODO: chunking
+      const value = String.fromCharCode.apply(String, chars); // TODO: chunking
+      return {
+        capacity,
+        length,
+        base,
+        value
+      };
     },
     create: function create_string(value) {
       const size = value.length << 1;
-      const ptr = malloc(arrayHeaderSize + size);
+      const ptr = malloc(arrayHeaderSize);
+      const base = malloc(size);
       memory.int.set(ptr, value.length); // capacity
       memory.int.set(ptr + 4, value.length); // length
-      memset(ptr + arrayHeaderSize, 0, size - arrayHeaderSize);
-      for (let i = 0, base = arrayHeaderSize + ptr; i < value.length; ++i)
+      memory.int.set(ptr + 8, base); // data
+      for (let i = 0; i < value.length; ++i)
         memory.ushort.set(base + (i << 1), value.charCodeAt(i));
-      return ptr;
+      return {
+        ptr,
+        base
+      };
     }
   };
 
@@ -394,7 +406,7 @@ export function load(file: string | Uint8Array | ArrayBuffer, options?: LoadOpti
 
   // initialize imports
   if (!imp.lib) imp.lib = {};
-  if (!imp.lib.log) imp.lib.log = (type: LogType, messagePtr: number) => mod.log(type, mem.string.get(messagePtr));
+  if (!imp.lib.log) imp.lib.log = (type: LogType, messagePtr: number) => mod.log(type, mem.string.get(messagePtr).value);
   if (!imp.lib.resize)
     imp.lib.resize = () => {
       initializeMemory(mem, exp.malloc || imp.lib.malloc, exp.memset || imp.lib.memset);

@@ -133,19 +133,20 @@ API
 * **ArrayAccessor**<br />
   Array memory accessor.
 
-  * **get**(ptr: `number`): `{ length: number, base: number }`<br />
-    Gets an array from memory at the specified pointer and returns its length and element base
-    pointer.
+  * **get**(ptr: `number`): `{ capacity: number, length: number, base: number }`<br />
+    Gets an array from memory at the specified pointer and returns its capacity, length and element
+    base pointer.
   * **create**(length: `number`, elementByteSize: `number`): `{ ptr: number, base: number }`<br />
     Creates an array in memory and returns its pointer and element base pointer.
 
 * **StringAccessor**<br />
   String memory accessor.
 
-  * **get**(ptr: `number`): `string`<br />
-    Gets a string from memory at the specified pointer.
+  * **get**(ptr: `number`): `{ capacity: number, length: number, base: number, value: number }`<br />
+    Gets a string from memory at the specified pointer and returns its capacity, length, element
+    base pointer and value.
   * **create**(value: `string`): `number`<br />
-    Creates a string in memory and returns its pointer.
+    Creates a string in memory and returns its pointer and element base pointer.
 
 * **initializeMemory**(memoryInstance: `WebAssembly.Memory`, malloc: `Function`, memset: `Function`): `Memory`<br />
   Just populates a WebAssembly Memory instance with the AssemblyScript-typical accessors.
