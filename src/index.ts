@@ -446,7 +446,7 @@ export { load as default };
 
 let fs: any;
 
-export let xfetch: typeof fetch = typeof fetch === "function" ? fetch : function fetch_node(file): Promise<Response> {
+export let xfetch: typeof fetch = typeof fetch === "function" ? fetch.bind() : function fetch_node(file): Promise<Response> {
   return new Promise((resolve, reject) => {
     (fs || (fs = eval("equire".replace(/^/, "r"))("fs")))
     .readFile(file, (err: Error, data: Buffer) => {
